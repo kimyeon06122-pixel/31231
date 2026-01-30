@@ -36,11 +36,13 @@ const Courses: React.FC = () => {
     async function fetchCourses() {
       try {
         setLoading(true);
+        console.log('[v0] Fetching courses from Supabase...');
         const { data, error } = await supabase
           .from('courses')
           .select('*')
           .order('created_at', { ascending: false });
 
+        console.log('[v0] Courses response:', { data, error });
         if (error) throw error;
 
         const mappedCourses: Course[] = (data || []).map((item) => ({

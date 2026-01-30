@@ -13,12 +13,14 @@ const Notices: React.FC = () => {
     async function fetchNotices() {
       try {
         setLoading(true);
+        console.log('[v0] Fetching notices from Supabase...');
         const { data, error } = await supabase
           .from('notices')
           .select('*')
           .order('is_pinned', { ascending: false })
           .order('created_at', { ascending: false });
 
+        console.log('[v0] Notices response:', { data, error });
         if (error) throw error;
 
         const mappedNotices: Notice[] = (data || []).map((item) => ({
