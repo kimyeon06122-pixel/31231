@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { COURSES } from '../constants';
+import React, { useState, useEffect } from 'react';
 import { Badge, Button, IconLabel, SectionTitle, Card } from '../components/UIComponents';
-import { User, Calendar, Check } from 'lucide-react';
-import { Subject, TargetAudience } from '../types';
+import { User, Calendar, Check, Loader2 } from 'lucide-react';
+import { Subject, TargetAudience, Course } from '../types';
+import { supabase } from '../lib/supabase';
 
 // MD3 Choice Chip
 interface FilterChipProps {
@@ -26,14 +26,73 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => (
 );
 
 const Courses: React.FC = () => {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [targetFilter, setTargetFilter] = useState<string>('All');
   const [subjectFilter, setSubjectFilter] = useState<string>('All');
 
-  const filteredCourses = COURSES.filter(course => {
+  useEffect(() => {
+    async function fetchCourses() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('courses')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const mappedCourses: Course[] = (data || []).map((item) => ({
+          id: item.id,
+          title: item.title,
+          teacher: item.teacher,
+          subject: item.subject as Subject,
+          target: item.target as TargetAudience,
+          schedule: item.schedule,
+          price: item.price,
+          currentStudents: item.current_students,
+          maxStudents: item.max_students,
+          isClosingSoon: item.is_closing_soon,
+          description: item.description,
+        }));
+
+        setCourses(mappedCourses);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '강의 목록을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCourses();
+  }, []);
+
+  const filteredCourses = courses.filter(course => {
     const targetMatch = targetFilter === 'All' || course.target === targetFilter;
     const subjectMatch = subjectFilter === 'All' || course.subject === subjectFilter;
     return targetMatch && subjectMatch;
   });
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-20 px-6 flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#175CD3]" />
+        <p className="mt-4 text-[#6B7280]">강의 목록을 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto py-20 px-6 text-center">
+        <p className="text-[#B91C1C]">{error}</p>
+        <Button variant="secondary" className="mt-4" onClick={() => window.location.reload()}>
+          다시 시도
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-20 px-6">
