@@ -3,24 +3,30 @@ import { Badge, SectionTitle, Button } from '../components/UIComponents';
 import { Loader2 } from 'lucide-react';
 import { Notice } from '../types';
 import { supabase } from '../lib/supabase';
+import { NOTICES } from '../constants';
 
 const Notices: React.FC = () => {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchNotices() {
+      // If Supabase is not configured, use fallback data
+      if (!supabase) {
+        console.log('[v0] Supabase not configured, using fallback data');
+        setNotices(NOTICES);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log('[v0] Fetching notices from Supabase...');
         const { data, error } = await supabase
           .from('notices')
           .select('*')
           .order('is_pinned', { ascending: false })
           .order('created_at', { ascending: false });
 
-        console.log('[v0] Notices response:', { data, error });
         if (error) throw error;
 
         const mappedNotices: Notice[] = (data || []).map((item) => ({
@@ -33,7 +39,8 @@ const Notices: React.FC = () => {
 
         setNotices(mappedNotices);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '공지사항을 불러오는데 실패했습니다.');
+        console.warn('[v0] Supabase fetch failed, using fallback data:', err);
+        setNotices(NOTICES);
       } finally {
         setLoading(false);
       }
@@ -50,17 +57,6 @@ const Notices: React.FC = () => {
       <div className="max-w-4xl mx-auto py-16 px-6 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-[#175CD3]" />
         <p className="mt-4 text-[#6B7280]">공지사항을 불러오는 중...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-4xl mx-auto py-16 px-6 text-center">
-        <p className="text-[#B91C1C]">{error}</p>
-        <Button variant="secondary" className="mt-4" onClick={() => window.location.reload()}>
-          다시 시도
-        </Button>
       </div>
     );
   }

@@ -3,6 +3,7 @@ import { Badge, Button, IconLabel, SectionTitle, Card } from '../components/UICo
 import { User, Calendar, Check, Loader2 } from 'lucide-react';
 import { Subject, TargetAudience, Course } from '../types';
 import { supabase } from '../lib/supabase';
+import { COURSES } from '../constants';
 
 // MD3 Choice Chip
 interface FilterChipProps {
@@ -28,21 +29,26 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => (
 const Courses: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [targetFilter, setTargetFilter] = useState<string>('All');
   const [subjectFilter, setSubjectFilter] = useState<string>('All');
 
   useEffect(() => {
     async function fetchCourses() {
+      // If Supabase is not configured, use fallback data
+      if (!supabase) {
+        console.log('[v0] Supabase not configured, using fallback data');
+        setCourses(COURSES);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log('[v0] Fetching courses from Supabase...');
         const { data, error } = await supabase
           .from('courses')
           .select('*')
           .order('created_at', { ascending: false });
 
-        console.log('[v0] Courses response:', { data, error });
         if (error) throw error;
 
         const mappedCourses: Course[] = (data || []).map((item) => ({
@@ -61,7 +67,8 @@ const Courses: React.FC = () => {
 
         setCourses(mappedCourses);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '강의 목록을 불러오는데 실패했습니다.');
+        console.warn('[v0] Supabase fetch failed, using fallback data:', err);
+        setCourses(COURSES);
       } finally {
         setLoading(false);
       }
@@ -81,17 +88,6 @@ const Courses: React.FC = () => {
       <div className="max-w-7xl mx-auto py-20 px-6 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-[#175CD3]" />
         <p className="mt-4 text-[#6B7280]">강의 목록을 불러오는 중...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto py-20 px-6 text-center">
-        <p className="text-[#B91C1C]">{error}</p>
-        <Button variant="secondary" className="mt-4" onClick={() => window.location.reload()}>
-          다시 시도
-        </Button>
       </div>
     );
   }

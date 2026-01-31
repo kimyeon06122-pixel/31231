@@ -1,17 +1,20 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Vercel/v0 Supabase integration provides these environment variables
 const supabaseUrl = process.env.SUPABASE_URL || ''
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || ''
 
-console.log('[v0] Supabase URL:', supabaseUrl ? 'Set' : 'Not set')
-console.log('[v0] Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Not set')
+// Only create client if credentials are available
+let supabase: SupabaseClient | null = null
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('[v0] Supabase environment variables not found. Please connect Supabase integration.')
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey)
+  console.log('[v0] Supabase client initialized successfully')
+} else {
+  console.warn('[v0] Supabase environment variables not found. Using fallback data.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export { supabase }
 
 // Database types
 export interface CourseRow {
